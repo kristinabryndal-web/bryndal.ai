@@ -24,6 +24,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .hdr-top{display:flex;align-items:baseline;gap:14px;margin-bottom:10px}
 .hdr-title{font-size:17px;font-weight:700;letter-spacing:-.02em}
 .hdr-stats{font-size:11px;color:var(--text3);letter-spacing:.02em}
+.hdr-home{margin-left:auto;font-size:11px;color:var(--text3);text-decoration:none;letter-spacing:.04em;transition:color .15s}
+.hdr-home:hover{color:var(--text)}
 .search-row{display:flex;gap:6px;align-items:center}
 #search{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:7px 12px;outline:none;transition:border .15s}
 #search::placeholder{color:var(--text3)}
@@ -75,6 +77,7 @@ mark{background:rgba(29,185,84,.25);color:inherit;border-radius:2px;padding:0 1p
   <div class="hdr-top">
     <div class="hdr-title">Crate Archive</div>
     <div class="hdr-stats">198 Playlists&ensp;/&ensp;4,707 Playlist tracks&ensp;/&ensp;971 Liked Songs</div>
+    <a class="hdr-home" href="/">← bryndal.ai</a>
   </div>
   <div class="search-row">
     <input id="search" type="text" placeholder="Search tracks, artists, playlists…" autocomplete="off" spellcheck="false">
