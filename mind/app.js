@@ -1,7 +1,7 @@
 import { getName, setName, isMuted, toggleMute, sfx } from './common.js';
 
 const GAME_IDS = ['match', 'path', 'chain', 'snap', 'flash'];
-const V = 1; // bump to bust the cache on game modules
+const V = 2; // bump to bust the cache on game modules
 
 // Score API: same origin on the worker; absolute URL when served from bryndal.ai.
 const API = /bryndal\.ai$|github\.io$/.test(location.hostname)
@@ -39,11 +39,11 @@ async function fetchBoard(key) {
     return (await r.json()).entries || [];
   } catch { return null; }
 }
-async function submit(g, opts, result) {
+async function submit(g, opts, result, name = getName()) {
   const r = await fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ board: boardKey(g, opts), order: g.score.order, name: getName(), score: result.score, detail: result.detail }),
+    body: JSON.stringify({ board: boardKey(g, opts), order: g.score.order, name, score: result.score, detail: result.detail }),
   });
   if (!r.ok) throw new Error('save failed');
   return r.json();
@@ -111,6 +111,7 @@ async function lobby() {
     <section class="hero">
       <h1>Contest of the <em>Mind</em></h1>
       <p>Five memory games. One leaderboard. Pick a game, beat your best, and climb the standings.</p>
+      <a class="btn party-btn" href="#/party">👥 Pass &amp; play with friends</a>
     </section>
     <div class="lobby">
       <div class="tiles">${games.map((g) => `
@@ -242,14 +243,21 @@ async function setup(g) {
   refresh();
 }
 
-function play(g, opts) {
+// party: { player, onResult(result) } — pass-and-play turn; no restart, custom bar.
+function play(g, opts, party = null) {
   app.innerHTML = `
     <div class="play-bar">
-      <a class="back" href="#/play/${g.id}">‹ ${esc(g.title)}</a>
-      <span class="muted small">${esc(optsLabel(g, opts))}</span>
-      <button class="btn ghost small" id="restart">Restart</button>
+      ${party
+        ? `<button class="back linklike" id="quit-party">‹ Quit</button><span class="turn-chip">${esc(party.player)}'s turn · ${esc(g.title)}</span>`
+        : `<a class="back" href="#/play/${g.id}">‹ ${esc(g.title)}</a><span class="muted small">${esc(optsLabel(g, opts))}</span>
+           <button class="btn ghost small" id="restart">Restart</button>`}
     </div>
     <div class="play-area" id="play-area"></div>`;
+  if (party) {
+    document.getElementById('quit-party').onclick = () => {
+      if (confirm('Quit this pass-and-play game? Scores saved so far stay on the leaderboard.')) location.hash = '#/';
+    };
+  }
   const start = () => {
     cleanup?.();
     const el = document.getElementById('play-area');
@@ -261,12 +269,163 @@ function play(g, opts) {
       finish: (result) => {
         if (done) return;
         done = true;
-        setTimeout(() => results(g, opts, result, start), 600);
+        setTimeout(() => (party ? party.onResult(result) : results(g, opts, result, start)), 600);
       },
     }) || null;
   };
-  document.getElementById('restart').onclick = start;
+  if (!party) document.getElementById('restart').onclick = start;
   start();
+}
+
+// ---------- pass and play ----------
+const PARTY_KEY = 'mind-contest:party';
+const better = (g, a, b) => (g.score.order === 'asc' ? a < b : a > b);
+
+function partySetup() {
+  const saved = JSON.parse(localStorage.getItem(PARTY_KEY) || '{}');
+  let names = saved.names?.length >= 2 ? saved.names : [getName(), ''];
+  let picked = new Set(saved.games?.filter((id) => games.some((g) => g.id === id)) || games.map((g) => g.id));
+
+  app.innerHTML = `
+    <a class="back" href="#/">‹ All games</a>
+    <div class="panel party-setup">
+      <h1>Pass &amp; play</h1>
+      <p class="rules">Take turns on this device. Everyone plays the same games on standard settings, one at a time, and the app keeps score. Each game awards points by place, and every score also goes on the leaderboards.</p>
+      <div class="label">Players (2–4)</div>
+      <div id="names" class="names"></div>
+      <button class="btn ghost small" id="add-player">+ Add player</button>
+      <div class="label" style="margin-top:24px">Games</div>
+      <div class="pick" id="pick">${games.map((g) => `
+        <button class="pick-tile ${picked.has(g.id) ? 'on' : ''}" data-g="${g.id}">
+          <span class="tile-icon">${g.icon}</span><span>${esc(g.title)}</span>
+        </button>`).join('')}</div>
+      <p class="muted small" id="party-err"></p>
+      <button class="btn big" id="party-start">Start</button>
+    </div>`;
+
+  const namesEl = document.getElementById('names');
+  const drawNames = () => {
+    namesEl.innerHTML = names.map((n, i) => `
+      <div class="name-row">
+        <span class="seat">${i + 1}</span>
+        <input data-i="${i}" maxlength="24" placeholder="Player ${i + 1}" value="${esc(n)}" />
+        ${names.length > 2 ? `<button class="icon-btn" data-rm="${i}" title="Remove">✕</button>` : ''}
+      </div>`).join('');
+    document.getElementById('add-player').hidden = names.length >= 4;
+  };
+  namesEl.oninput = (e) => { if (e.target.dataset.i) names[+e.target.dataset.i] = e.target.value; };
+  namesEl.onclick = (e) => {
+    const rm = e.target.closest('[data-rm]');
+    if (rm) { names.splice(+rm.dataset.rm, 1); drawNames(); }
+  };
+  document.getElementById('add-player').onclick = () => { names.push(''); drawNames(); namesEl.querySelector(`[data-i="${names.length - 1}"]`).focus(); };
+  document.getElementById('pick').onclick = (e) => {
+    const b = e.target.closest('[data-g]');
+    if (!b) return;
+    picked.has(b.dataset.g) ? picked.delete(b.dataset.g) : picked.add(b.dataset.g);
+    b.classList.toggle('on');
+    sfx.click();
+  };
+  drawNames();
+
+  document.getElementById('party-start').onclick = () => {
+    const clean = names.map((n) => n.trim()).filter(Boolean);
+    const err = document.getElementById('party-err');
+    const lower = clean.map((n) => n.toLowerCase());
+    if (clean.length < 2) return (err.textContent = 'Add at least two players.');
+    if (new Set(lower).size !== lower.length) return (err.textContent = 'Each player needs a different name.');
+    if (!picked.size) return (err.textContent = 'Pick at least one game.');
+    const list = games.filter((g) => picked.has(g.id));
+    localStorage.setItem(PARTY_KEY, JSON.stringify({ names: clean, games: list.map((g) => g.id) }));
+    runParty(clean, list);
+  };
+}
+
+async function runParty(players, list) {
+  const totals = Object.fromEntries(players.map((p) => [p, 0]));
+  const partyHash = location.hash;
+  const alive = () => location.hash === partyHash;
+
+  for (let gi = 0; gi < list.length; gi++) {
+    const g = list[gi];
+    const opts = defaults(g);
+    const scores = {};
+    for (let pi = 0; pi < players.length; pi++) {
+      const p = players[pi];
+      await partyModal(`
+        <div class="label">Game ${gi + 1} of ${list.length} · ${esc(g.title)}</div>
+        <div class="pass-icon">${g.icon}</div>
+        <h2>Pass to <span class="accent">${esc(p)}</span></h2>
+        <p class="muted">${esc(g.rules)}</p>
+        <div class="row"><button class="btn big" data-ok>I'm ${esc(p)} — go!</button></div>`);
+      if (!alive()) return;
+      const result = await new Promise((resolve) => play(g, opts, { player: p, onResult: resolve }));
+      if (!alive()) return;
+      scores[p] = result;
+      if (g.score.order === 'asc' || result.score > 0) submit(g, opts, result, p).catch(() => {});
+      if (pi < players.length - 1) {
+        await partyModal(`
+          <div class="label">${esc(p)} · ${esc(g.title)}</div>
+          <div class="big-score">${esc(g.score.format(result.score))}</div>
+          <p class="muted">${esc(result.detail || '')}</p>
+          <div class="row"><button class="btn" data-ok>Next player</button></div>`);
+        if (!alive()) return;
+      }
+    }
+
+    // rank this game; ties share the higher place
+    const ranked = [...players].sort((a, b) => (better(g, scores[a].score, scores[b].score) ? -1 : better(g, scores[b].score, scores[a].score) ? 1 : 0));
+    const pts = {};
+    ranked.forEach((p, i) => {
+      const tiedWith = ranked.findIndex((q) => scores[q].score === scores[p].score);
+      pts[p] = players.length - tiedWith;
+      totals[p] += pts[p];
+    });
+    const last = gi === list.length - 1;
+    await partyModal(`
+      <div class="label">${esc(g.title)} · results</div>
+      <ol class="board">${ranked.map((p) => `
+        <li><span class="rank">${['🥇', '🥈', '🥉'][players.length - pts[p]] || players.length - pts[p] + 1}</span>
+        <span class="who">${esc(p)}<small>${esc(scores[p].detail || '')}</small></span>
+        <b>${esc(g.score.format(scores[p].score))}</b><span class="pts">+${pts[p]}</span></li>`).join('')}</ol>
+      ${list.length > 1 ? standingsHtml(players, totals, 'Running total') : ''}
+      <div class="row"><button class="btn" data-ok>${last ? 'Final results' : `Next: ${esc(list[gi + 1].title)}`}</button></div>`);
+    if (!alive()) return;
+  }
+
+  const order = [...players].sort((a, b) => totals[b] - totals[a]);
+  const top = order.filter((p) => totals[p] === totals[order[0]]);
+  sfx.win();
+  const choice = await partyModal(`
+    <div class="crown">👑</div>
+    <h2 class="center">${top.length > 1 ? `It's a tie: ${top.map(esc).join(' & ')}!` : `${esc(top[0])} wins!`}</h2>
+    ${standingsHtml(players, totals, 'Final standings')}
+    <div class="row"><button class="btn ghost" data-ok="lobby">All games</button><button class="btn" data-ok="again">Play again</button></div>`);
+  if (!alive()) return;
+  if (choice === 'again') runParty(players, list);
+  else location.hash = '#/';
+}
+
+function standingsHtml(players, totals, title) {
+  const order = [...players].sort((a, b) => totals[b] - totals[a]);
+  return `<div class="label" style="margin-top:18px">${title}</div>
+    <ol class="board">${order.map((p, i) => `<li><span class="rank">${i + 1}</span><span class="who">${esc(p)}</span><b>${totals[p]} pt${totals[p] === 1 ? '' : 's'}</b></li>`).join('')}</ol>`;
+}
+
+// Shows a modal; resolves with the clicked [data-ok] value. Resolves null if the user navigates away.
+function partyModal(html) {
+  return new Promise((resolve) => {
+    openModal(html);
+    const onHash = () => resolve(null);
+    window.addEventListener('hashchange', onHash, { once: true });
+    modalBody.querySelectorAll('[data-ok]').forEach((b) => {
+      b.onclick = () => {
+        window.removeEventListener('hashchange', onHash);
+        closeModal();
+        resolve(b.dataset.ok || true);
+      };
+    });
+  });
 }
 
 async function results(g, opts, result, again) {
@@ -308,7 +467,8 @@ function route() {
   paintHeader();
   const m = location.hash.match(/^#\/play\/(\w+)/);
   const g = m && games.find((x) => x.id === m[1]);
-  if (g) setup(g);
+  if (location.hash.startsWith('#/party')) partySetup();
+  else if (g) setup(g);
   else lobby();
   window.scrollTo(0, 0);
 }
