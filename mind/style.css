@@ -1,0 +1,82 @@
+/* Contest of the Mind — shares the bryndal.ai look (dark, violet, Syne + Inter). */
+:root {
+  --bg: #0b0b0e;
+  --panel: rgba(255, 255, 255, 0.03);
+  --panel-2: rgba(255, 255, 255, 0.06);
+  --line: rgba(255, 255, 255, 0.08);
+  --text: #ededf0;
+  --muted: #8080a0;
+  --dim: #44445a;
+  --accent: #a78bfa;
+  --accent-soft: rgba(167, 139, 250, 0.14);
+  --good: #4ade80;
+  --bad: #f87171;
+  --warn: #fbbf24;
+  /* four game colours for pads, tiles, etc. */
+  --c1: #f472b6;
+  --c2: #38bdf8;
+  --c3: #facc15;
+  --c4: #4ade80;
+  --radius: 12px;
+  --display: 'Syne', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--line);
+}
+.hub-link { font-size: 13px; color: var(--muted); text-decoration: none; }
+.hub-link:hover { color: var(--accent); }
+.brand { font-family: var(--display); font-weight: 800; font-size: 18px; letter-spacing: -0.03em; color: var(--text); text-decoration: none; }
+.brand em { color: var(--accent); font-style: normal; }
+.header-right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+
+main { flex: 1; width: 100%; max-width: 1040px; margin: 0 auto; padding: 32px 28px 60px; }
+
+.btn {
+  background: var(--accent);
+  color: #15121f;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 22px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: transform 0.1s, filter 0.15s;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn:active { transform: scale(0.97); }
+.btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+.btn.small { padding: 7px 14px; font-size: 13px; }
+.btn:disabled { opacity: 0.4; cursor: default; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+.label { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); margin-bottom: 12px; }
+h1, h2, h3 { font-family: var(--display); letter-spacing: -0.03em; }
+
+/* Heads-up display row used inside games: <div class="hud"><div class="stat"><span>Time</span><b>0:12.3</b></div>… */
+.hud { display: flex; gap: 26px; justify-content: center; margin-bottom: 18px; }
+.stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.stat span { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.stat b { font-family: var(--display); font-size: 22px; font-variant-numeric: tabular-nums; }
+
+/* Centered message inside a game (e.g. "Watch…", "Your turn") */
+.game-msg { text-align: center; color: var(--muted); min-height: 22px; margin: 14px 0; font-size: 15px; }
+
+@keyframes shake { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-6px) } 75% { transform: translateX(6px) } }
+.shake { animation: shake 0.25s 2; }
