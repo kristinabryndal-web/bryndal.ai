@@ -23,7 +23,20 @@
 
 const NAME_KEY = 'mind-contest:name';
 export const getName = () => localStorage.getItem(NAME_KEY) || '';
-export const setName = (n) => localStorage.setItem(NAME_KEY, n.trim().slice(0, 24));
+const PLAYERS_KEY = 'mind-contest:players';
+// Everyone who has played on this device, most recent first.
+export const getPlayers = () => {
+  try { return JSON.parse(localStorage.getItem(PLAYERS_KEY)) || []; } catch { return []; }
+};
+export const setName = (n) => {
+  n = n.trim().slice(0, 24);
+  localStorage.setItem(NAME_KEY, n);
+  const rest = getPlayers().filter((p) => p.toLowerCase() !== n.toLowerCase());
+  localStorage.setItem(PLAYERS_KEY, JSON.stringify([n, ...rest].slice(0, 8)));
+};
+export const forgetPlayer = (n) =>
+  localStorage.setItem(PLAYERS_KEY, JSON.stringify(getPlayers().filter((p) => p !== n)));
+if (localStorage.getItem(NAME_KEY) && !getPlayers().length) setName(localStorage.getItem(NAME_KEY));
 
 // ---- sound (Web Audio, no files) ----
 let ctx;

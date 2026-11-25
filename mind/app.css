@@ -126,3 +126,15 @@
 .pts { color: var(--good); font-weight: 600; width: 34px; text-align: right; }
 .crown { font-size: 52px; text-align: center; }
 .center { text-align: center; }
+
+/* ---- who's playing ---- */
+.playing-as { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 18px; padding: 12px 14px; border-radius: 10px; background: var(--panel-2); }
+.playing-as > span { margin-right: 4px; }
+.playing-as b { color: var(--accent); }
+.who-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.who-chip { background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px; font-size: 13px; }
+.who-chip:hover { border-color: var(--accent); }
+.who-chip.on { background: var(--accent); color: #15121f; border-color: var(--accent); font-weight: 600; }
+.who-chip.ghost { background: none; color: var(--muted); }
+.modal .who-chips .who-chip { font-size: 15px; padding: 9px 16px; }
+.save-msg b { color: var(--accent); }

@@ -1,7 +1,7 @@
-import { getName, setName, isMuted, toggleMute, sfx } from './common.js';
+import { getName, setName, getPlayers, isMuted, toggleMute, sfx } from './common.js';
 
 const GAME_IDS = ['match', 'path', 'chain', 'snap', 'flash'];
-const V = 2; // bump to bust the cache on game modules
+const V = 3; // bump to bust the cache on game modules
 
 // Score API: same origin on the worker; absolute URL when served from bryndal.ai.
 const API = /bryndal\.ai$|github\.io$/.test(location.hostname)
@@ -53,7 +53,7 @@ async function submit(g, opts, result, name = getName()) {
 const chip = document.getElementById('player-chip');
 const muteBtn = document.getElementById('mute-btn');
 const paintHeader = () => {
-  chip.textContent = getName() ? `👤 ${getName()}` : 'Set your name';
+  chip.textContent = getName() ? `👤 ${getName()} · switch` : 'Set your name';
   muteBtn.textContent = isMuted() ? '🔇' : '🔊';
 };
 chip.onclick = () => askName().then(() => route());
@@ -67,19 +67,31 @@ const closeModal = () => { modal.hidden = true; modalBody.innerHTML = ''; };
 
 function askName(required = false) {
   return new Promise((resolve) => {
+    const recent = getPlayers();
     openModal(`
       <h2>Who's playing?</h2>
-      <p class="muted">Your name goes on the leaderboard. Use the same name every time so your scores add up.</p>
+      <p class="muted">Scores save under this name. Use the same name every time so your scores add up.</p>
+      ${recent.length ? `<div class="who-chips" id="who-chips">${recent.map((p) => `
+        <button type="button" class="who-chip ${p === getName() ? 'on' : ''}" data-p="${esc(p)}">${esc(p)}</button>`).join('')}</div>
+        <div class="label" style="margin:18px 0 0">Or a new player</div>` : ''}
       <form id="name-form" class="name-form">
-        <input id="name-input" maxlength="24" autocomplete="nickname" placeholder="Your name" value="${esc(getName())}" required />
+        <input id="name-input" maxlength="24" autocomplete="off" placeholder="New player's name" value="${recent.length ? '' : esc(getName())}" ${recent.length ? '' : 'required'} />
         <div class="row">
           ${required ? '' : '<button type="button" class="btn ghost" id="name-cancel">Cancel</button>'}
           <button class="btn">Let's go</button>
         </div>
       </form>`);
     const input = document.getElementById('name-input');
-    input.focus();
-    input.select();
+    if (!recent.length) { input.focus(); input.select(); }
+    const chips = document.getElementById('who-chips');
+    if (chips) chips.onclick = (e) => {
+      const b = e.target.closest('[data-p]');
+      if (!b) return;
+      setName(b.dataset.p);
+      paintHeader();
+      closeModal();
+      resolve(true);
+    };
     document.getElementById('name-form').onsubmit = (e) => {
       e.preventDefault();
       if (!input.value.trim()) return;
@@ -206,6 +218,7 @@ async function setup(g) {
             <div class="seg" data-key="${o.key}">${o.choices.map((c) => `<button data-v="${esc(c)}" class="${c === opts[o.key] ? 'on' : ''}">${esc(c)}</button>`).join('')}</div>
           </div>`).join('')}
         <p class="muted small" id="std-note"></p>
+        <div class="playing-as" id="playing-as"></div>
         <button class="btn big" id="start">Start game</button>
       </div>
       <aside class="panel">
@@ -214,6 +227,23 @@ async function setup(g) {
       </aside>
     </div>`;
 
+  const drawWho = () => {
+    const others = getPlayers().filter((p) => p !== getName()).slice(0, 5);
+    document.getElementById('playing-as').innerHTML = getName()
+      ? `<span>Playing as <b>${esc(getName())}</b></span>
+         ${others.map((p) => `<button class="who-chip" data-p="${esc(p)}">Switch to ${esc(p)}</button>`).join('')}
+         <button class="who-chip ghost" data-new>+ New player</button>`
+      : `<span class="muted">Who's playing?</span> <button class="who-chip" data-new>Set your name</button>`;
+  };
+  document.getElementById('playing-as').onclick = async (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.p) { setName(b.dataset.p); paintHeader(); sfx.click(); }
+    else if (!(await askName())) return;
+    drawWho();
+    refresh();
+  };
+  drawWho();
   const refresh = async () => {
     document.getElementById('board-label').textContent = optsLabel(g, opts) || 'standard';
     document.getElementById('std-note').textContent = isStd()
@@ -433,7 +463,7 @@ async function results(g, opts, result, again) {
     <div class="label">${esc(g.title)} · ${esc(optsLabel(g, opts))}</div>
     <div class="big-score">${esc(g.score.format(result.score))}</div>
     <p class="muted">${esc(result.detail || '')}</p>
-    <p class="save-msg" id="save-msg">Saving your score…</p>
+    <p class="save-msg" id="save-msg">Saving…</p>
     <div id="board-view"></div>
     <div class="row">
       <button class="btn ghost" id="to-lobby">All games</button>
@@ -449,9 +479,10 @@ async function results(g, opts, result, again) {
     const r = await submit(g, opts, result);
     const msg = document.getElementById('save-msg');
     if (!msg) return;
-    if (r.improved && r.rank === 1) { msg.textContent = '🏆 New #1! You lead this board.'; sfx.win(); }
-    else if (r.improved) msg.textContent = `New personal best — you're #${r.rank}.`;
-    else msg.textContent = `Saved. Your best is still higher — you're #${r.rank}.`;
+    const who = esc(getName());
+    if (r.improved && r.rank === 1) { msg.innerHTML = `✓ Saved for <b>${who}</b> · 🏆 New #1! You lead this board.`; sfx.win(); }
+    else if (r.improved) msg.innerHTML = `✓ Saved for <b>${who}</b> · new personal best, #${r.rank}.`;
+    else msg.innerHTML = `✓ Saved for <b>${who}</b> · your best is still higher, #${r.rank}.`;
     document.getElementById('board-view').innerHTML = boardHtml(g, r.entries, getName());
   } catch {
     const msg = document.getElementById('save-msg');
