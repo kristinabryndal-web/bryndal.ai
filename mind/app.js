@@ -1,7 +1,7 @@
-import { getName, setName, getPlayers, isMuted, toggleMute, sfx } from './common.js?v=4';
+import { getName, setName, getPlayers, isMuted, toggleMute, sfx } from './common.js?v=5';
 
-const GAME_IDS = ['match', 'path', 'chain', 'snap', 'flash'];
-const V = 4; // bump to bust the cache on game modules
+const GAME_IDS = ['match', 'path', 'chain', 'snap', 'flash', 'sharp'];
+const V = 6; // bump to bust the cache on game modules
 
 // Score API: same origin on the worker; absolute URL when served from bryndal.ai.
 const API = /bryndal\.ai$|github\.io$/.test(location.hostname)
@@ -122,7 +122,7 @@ async function lobby() {
   app.innerHTML = `
     <section class="hero">
       <h1>Contest of the <em>Mind</em></h1>
-      <p>Five memory games. One leaderboard. Pick a game, beat your best, and climb the standings.</p>
+      <p>Six memory games. One leaderboard. Pick a game, beat your best, and climb the standings.</p>
       <a class="btn party-btn" href="#/party">👥 Pass &amp; play with friends</a>
     </section>
     <div class="lobby">

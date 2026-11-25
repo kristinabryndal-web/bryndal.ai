@@ -1,5 +1,5 @@
 // Flash Grid: a pattern of tiles glows for a moment; tap the ones that were lit.
-import { shuffle } from '../common.js?v=4';
+import { shuffle } from '../common.js?v=5';
 
 const CSS = `
 .flash-wrap { display: flex; flex-direction: column; align-items: center; }

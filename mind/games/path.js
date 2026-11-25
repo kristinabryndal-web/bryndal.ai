@@ -1,5 +1,5 @@
 // Firefly Path — watch a firefly hop between glowing stones, then retrace its route.
-import { sfx as commonSfx } from '../common.js?v=4';
+import { sfx as commonSfx } from '../common.js?v=5';
 
 const CSS = `
 .path-wrap { display: flex; flex-direction: column; align-items: center; width: 100%; user-select: none; -webkit-user-select: none; }
