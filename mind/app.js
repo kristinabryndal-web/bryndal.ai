@@ -1,7 +1,7 @@
-import { getName, setName, getPlayers, isMuted, toggleMute, sfx } from './common.js';
+import { getName, setName, getPlayers, isMuted, toggleMute, sfx } from './common.js?v=4';
 
 const GAME_IDS = ['match', 'path', 'chain', 'snap', 'flash'];
-const V = 3; // bump to bust the cache on game modules
+const V = 4; // bump to bust the cache on game modules
 
 // Score API: same origin on the worker; absolute URL when served from bryndal.ai.
 const API = /bryndal\.ai$|github\.io$/.test(location.hostname)

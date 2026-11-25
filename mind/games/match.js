@@ -1,5 +1,5 @@
 // Card Match — classic concentration with optional bombs.
-import { sfx, shuffle, fmtTime } from '../common.js';
+import { sfx, shuffle, fmtTime } from '../common.js?v=4';
 
 const THEMES = {
   space: ['🚀', '🪐', '🌙', '⭐', '☄️', '🛸', '👽', '🌍', '🔭', '🌞', '🛰️', '🌌'],

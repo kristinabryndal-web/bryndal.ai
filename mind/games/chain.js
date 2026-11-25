@@ -1,5 +1,5 @@
 // Color Chain — watch a growing chain of coloured pads, then repeat it.
-import { tone } from '../common.js';
+import { tone } from '../common.js?v=4';
 
 const COLORS = ['--c1', '--c2', '--c3', '--c4'];
 const HEX = ['#f472b6', '#38bdf8', '#facc15', '#4ade80'];

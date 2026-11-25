@@ -1,5 +1,5 @@
 // Snap: a timed same-or-different (n-back) game for Contest of the Mind.
-import { sfx as commonSfx } from '../common.js';
+import { sfx as commonSfx } from '../common.js?v=4';
 
 const SHAPES = ['circle', 'square', 'triangle', 'star', 'diamond', 'hexagon'];
 const COLORS = ['--c1', '--c2', '--c3', '--c4'];
